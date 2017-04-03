@@ -31,16 +31,6 @@
 					<li class = "nav-link">
 						<button class="btn btn-primary randomizeBtn" type="button">Randomize</button>
 					</li>
-				<!--	<li class="nav-item">
-						<form>
-							<div class="input-group">
-								<input type="text" class="search" placeholder=" Search for...">
-								<span class="input-group-btn">
-									<button class="btn btn-primary" type="button"><i class="fa fa-search"></i></button>
-								</span>
-							</div>
-						</form>
-					</li> -->
 					<li class="nav-link">
 						<i class="fa fa-question-circle" aria-hidden="true"></i>
 					</li>
@@ -48,20 +38,29 @@
 			</div>
 		</nav>
 		<div id="hidden"></div>
-		<div id="sidebar">			
+		<div id="sidebar">
+			<div class="loading">
+				<div class="loading-bar"></div>
+				<div class="loading-bar"></div>
+				<div class="loading-bar"></div>
+				<div class="loading-bar"></div>
+			</div>
 		</div>
 		<div id = "dialog" title="About WikiMap">
 			<p>
 				WikiMap is an API mashup using the Google Maps API and the MediaWiki API. WikiMap shows wikipedia articles nearby in the sidebar. 
 				Note that the distance listed under each article title is based off the coordinates of the article and the coordinates of your current location. 
 				This means that the distance does not take into account roads and routes and therefore is not a representation of the distance you will travel to get there.
+				<br><br>
+				If you choose not to share your location you will not be able to see articles near you. However you can still use the randomize button to find articles nearby random coordinates.
+				Happy Browsing!
 			</p>
 		</div>
 		<div id="map-container">
 			<div id="map"></div>
 		</div>
 		<script>
-			(function() { //------ function for controled rounding ----------
+			(function() { <!--------------------------------------------------------------- function for controled rounding -------------------------------------------->
 					  /**
 					   * Decimal adjustment of a number.
 					   *
@@ -112,10 +111,6 @@
 						};
 					  }
 					})();
-		  // Note: This example requires that you consent to location sharing when
-		  // prompted by your browser. If you see the error "The Geolocation service
-		  // failed.", it means you probably did not give permission for the browser to
-		  // locate you.
 
 		  function initMap() {
 			var map = new google.maps.Map(document.getElementById('map'), {
@@ -157,6 +152,12 @@
 						contentType: "application/json; charset=utf-8",
 						async: false,
 						dataType: "json",
+						beforeSend: function(){
+						  $(".loading").css("display","block");
+						},
+						complete: function(){
+						  $(".loading").css("display","none");
+						},
 						success: function (data, textStatus, jqXHR) {
 							console.log(data);
 							if( !$.isArray(data.query.geosearch) ||  !data.query.geosearch.length) {
@@ -190,21 +191,18 @@
 				$(function wiki(){	//------------------------------------------------------------------wiki api function-------------------------------------------------------------------------------------------------------
 					var wikipos = $("#sidebar").attr('data-id');
 					
-					$(document).ajaxStart(function(){	//whenever an ajax method starts on anything in the document
-					//	$("#loading").text("The cats are currently materializing...");	//change the text in the element with id "loading"
-					});
-					
-					$(document).ajaxComplete(function(){	//whenever an ajax method completes on anything in the document
-					//	$("#loading").text("The cats have arrived!");	//change the text in the element with id "loading"
-					});					
- 
 					$.ajax({
 						type: "GET",
-						//url: /w/api.php?action=query&format=json&list=random&rnlimit=1
 						url: "https://en.wikipedia.org/w/api.php?action=query&format=json&list=geosearch&gscoord=" + wikipos + "&gsradius=10000&gslimit=10&callback=?",
 						contentType: "application/json; charset=utf-8",
 						async: false,
 						dataType: "json",
+						beforeSend: function(){
+						  $(".loading").css("display","block");
+						},
+						complete: function(){
+						  $(".loading").css("display","none");
+						},
 						success: function (data, textStatus, jqXHR) {
 							console.log(data);
 							if( !$.isArray(data.query.geosearch) ||  !data.query.geosearch.length) {
@@ -219,8 +217,8 @@
 						error: function (errorMessage) {
 						}
 					});
-					//end of callback function and end of .getJSON statement
-				});//end of wiki function
+					
+				});<!------------------------------------------------------------------------------------------end of wiki function---------------------------------------------------------->
 				  var marker = new google.maps.Marker({
 					position: pos,
 					map: map,
@@ -244,7 +242,7 @@
 								  'Error: The Geolocation service failed.' :
 								  'Error: Your browser doesn\'t support geolocation.');
 		  } 
-		  $(function dialogBox() {
+		  $(function dialogBox() { <!-------------------------------------------------------------------------------------------------------Dialog Box Function--------------------------------------------------->
 			$( "#dialog" ).dialog({
 			  autoOpen: false,
 			maxWidth:600,
@@ -268,58 +266,6 @@
 		<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEINMZu5Rhefl9hG7w66Xweel613xmiSA&callback=initMap"
   type="text/javascript"></script> 
 		<script>
-		/*	$(function randomize(){
-				$(document).ajaxStart(function(){	//whenever an ajax method starts on anything in the document
-					//	$("#loading").text("The cats are currently materializing...");	//change the text in the element with id "loading"
-					});
-					
-					$(document).ajaxComplete(function(){	//whenever an ajax method completes on anything in the document
-					//	$("#loading").text("The cats have arrived!");	//change the text in the element with id "loading"
-					});					
- 
-					$.ajax({
-						type: "GET",
-						//url: /w/api.php?action=query&format=json&list=random&rnlimit=1
-						url: "http://en.wikipedia.org/w/api.php?action=query&format=json&list=random&rnlimit=1&prop=coordinates&callback=?",
-						contentType: "application/json; charset=utf-8",
-						async: false,
-						dataType: "json",
-						success: function (data, textStatus, jqXHR) {
-							console.log(data);
-							$.each(data.query.random, function(i,item){
-								var ids = item.id;
-								console.log(ids);
-								$('#hidden').attr('data-id' , ids );
-							});
-						},
-						error: function (errorMessage) {
-						}
-					});
-			}); */
-		/*	$(function getCoordinates(){ //get coordinates of random article title
-					$(document).ajaxStart(function(){	//whenever an ajax method starts on anything in the document
-					//	$("#loading").text("The cats are currently materializing...");	//change the text in the element with id "loading"
-					});
-					
-					$(document).ajaxComplete(function(){	//whenever an ajax method completes on anything in the document
-					//	$("#loading").text("The cats have arrived!");	//change the text in the element with id "loading"
-					});		
-					var ids = $("#hidden").attr('data-id');
-					console.log(ids);
-					$.ajax({
-						type: "GET",
-						//url: /w/api.php?action=query&format=json&list=random&rnlimit=1
-						url: "http://en.wikipedia.org/w/api.php?action=query&prop=coordinates&titles=Wikimedia%20Foundation&callback=?",
-						contentType: "text/html; charset=utf-8",
-						async: false,
-						dataType: "html",
-						success: function (data, textStatus, jqXHR) {
-							console.log(data);
-						},
-						error: function (errorMessage) {
-						}
-					});
-			}); */
 		</script>
 	</body>
 </html>
