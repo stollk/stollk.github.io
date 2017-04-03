@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	<link rel="icon" type="ico" href="favicon-globe.ico">
+    <title>WikiMap</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+	
+	<!-- Bootstrap Core CSS -->
+    <link href="resources/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Icons -->
+    <link href="resources/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+    <!-- CSS -->
+    <link href="css/style.css" rel="stylesheet">
+	
+	<!-- JQuery and JQuery UI -->
+	<link rel="stylesheet" href="resources/jquery-ui-1.12.1.custom/jquery-ui.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script>window.jQuery || document.write('<script src="resources/jquery/jquery.min.js"><\/script>')</script>
+	<script src="resources/jquery-ui-1.12.1.custom/jquery-ui.min.js"></script>
+	</head>
+	
+	<body>
+		<!-- Navigation -->
+		<nav id="mainNav" class="navbar fixed-top navbar-toggleable navbar-inverse bg-inverse">
+			<a class="navbar-brand" href="#"><i class="fa fa-globe" aria-hidden="true"></i>WikiMap</a>
+			<div class="navbar-collapse" id="navbarExample">
+				<ul class="navbar-nav ml-auto">
+					<li class = "nav-link">
+						<button class="btn btn-primary randomizeBtn" type="button">Randomize</button>
+					</li>
+				<!--	<li class="nav-item">
+						<form>
+							<div class="input-group">
+								<input type="text" class="search" placeholder=" Search for...">
+								<span class="input-group-btn">
+									<button class="btn btn-primary" type="button"><i class="fa fa-search"></i></button>
+								</span>
+							</div>
+						</form>
+					</li> -->
+					<li class="nav-link">
+						<i class="fa fa-question-circle" aria-hidden="true"></i>
+					</li>
+				</ul>
+			</div>
+		</nav>
+		<div id="hidden"></div>
+		<div id="sidebar">			
+		</div>
+		<div id = "dialog" title="About WikiMap">
+			<p>
+				WikiMap is an API mashup using the Google Maps API and the MediaWiki API. WikiMap shows wikipedia articles nearby in the sidebar. 
+				Note that the distance listed under each article title is based off the coordinates of the article and the coordinates of your current location. 
+				This means that the distance does not take into account roads and routes and therefore is not a representation of the distance you will travel to get there.
+			</p>
+		</div>
+		<div id="map-container">
+			<div id="map"></div>
+		</div>
+		<script>
+			(function() { //------ function for controled rounding ----------
+					  /**
+					   * Decimal adjustment of a number.
+					   *
+					   * @param {String}  type  The type of adjustment.
+					   * @param {Number}  value The number.
+					   * @param {Integer} exp   The exponent (the 10 logarithm of the adjustment base).
+					   * @returns {Number} The adjusted value.
+					   */
+					  function decimalAdjust(type, value, exp) {
+						// If the exp is undefined or zero...
+						if (typeof exp === 'undefined' || +exp === 0) {
+						  return Math[type](value);
+						}
+						value = +value;
+						exp = +exp;
+						// If the value is not a number or the exp is not an integer...
+						if (isNaN(value) || !(typeof exp === 'number' && exp % 1 === 0)) {
+						  return NaN;
+						}
+						// If the value is negative...
+						if (value < 0) {
+						  return -decimalAdjust(type, -value, exp);
+						}
+						// Shift
+						value = value.toString().split('e');
+						value = Math[type](+(value[0] + 'e' + (value[1] ? (+value[1] - exp) : -exp)));
+						// Shift back
+						value = value.toString().split('e');
+						return +(value[0] + 'e' + (value[1] ? (+value[1] + exp) : exp));
+					  }
+
+					  // Decimal round
+					  if (!Math.round10) {
+						Math.round10 = function(value, exp) {
+						  return decimalAdjust('round', value, exp);
+						};
+					  }
+					  // Decimal floor
+					  if (!Math.floor10) {
+						Math.floor10 = function(value, exp) {
+						  return decimalAdjust('floor', value, exp);
+						};
+					  }
+					  // Decimal ceil
+					  if (!Math.ceil10) {
+						Math.ceil10 = function(value, exp) {
+						  return decimalAdjust('ceil', value, exp);
+						};
+					  }
+					})();
+		  // Note: This example requires that you consent to location sharing when
+		  // prompted by your browser. If you see the error "The Geolocation service
+		  // failed.", it means you probably did not give permission for the browser to
+		  // locate you.
+
+		  function initMap() {
+			var map = new google.maps.Map(document.getElementById('map'), {
+			  center: {lat: -34.397, lng: 150.644},
+			  zoom: 6
+			});
+			var infoWindow = new google.maps.InfoWindow({map: map});
+			
+		$(".randomizeBtn").click(function(){ <!------------------------------------------------Randomize Function----------------------------------------------------------------------------------------------------->
+			/*var min = 0;
+			var max = 90;
+			var maxLng = 180;
+			var plusOrMinus1 = Math.random() < 0.5 ? -1 : 1;
+			var plusOrMinus2 = Math.random() < 0.5 ? -1 : 1;
+			console.log(plusOrMinus1);
+			console.log(plusOrMinus2);*/
+			var latitude = Math.random() * (50 - 30) + 30;
+			var longitude = (Math.random() * (120 - 80) + 80) * (-1);
+			var wikipos = latitude + '%7C' + longitude;
+			var pos = {
+				lat: latitude,
+				lng: longitude
+			};
+			console.log(pos);
+			var marker = new google.maps.Marker({
+					position: pos,
+					map: map,
+					draggable: true,
+					animation: google.maps.Animation.DROP,
+				  });
+			marker.setPosition( new google.maps.LatLng( latitude, longitude  ) );
+			map.panTo( new google.maps.LatLng( latitude, longitude ) );
+			
+			$("#sidebar").empty();
+			
+			$.ajax({
+						type: "GET",
+						url: "http://en.wikipedia.org/w/api.php?action=query&format=json&list=geosearch&gscoord=" + wikipos + "&gsradius=10000&gslimit=10&callback=?",
+						contentType: "application/json; charset=utf-8",
+						async: false,
+						dataType: "json",
+						success: function (data, textStatus, jqXHR) {
+							console.log(data);
+							if( !$.isArray(data.query.geosearch) ||  !data.query.geosearch.length) {
+								$("#sidebar").append("<div class='articles'><h3> No nearby articles found. </h3></div>");
+							}
+							$.each(data.query.geosearch, function(i,item){
+								var baseUrl = "https://en.wikipedia.org/wiki/";
+								$("#sidebar").append("<div class='articles'><h3>" + item.title + "</h3>" + Math.round10(item.dist/(1000),-2) + "km <br><a href = " + baseUrl + encodeURI(item.title) + " target='_blank'>Read Article</a></div>");
+							});
+						},
+						error: function (errorMessage) {
+						}
+					});
+		  }); <!------------------------------------------------End Randomize Function----------------------------------------------------------------------------------------------------->
+
+			<!--------------------------------------------------------------------------------------------------------Geolocation Function--------------------------------------------------->
+			if (navigator.geolocation) {
+			  navigator.geolocation.getCurrentPosition(function(position) {
+				var pos = {
+				  lat: position.coords.latitude,
+				  lng: position.coords.longitude
+				};
+				//var posw = {position.coords.latitude"%7C"position.coords.longitude};
+				//infoWindow.setPosition(pos);
+				console.log(pos);
+				var lat = position.coords.latitude;
+				var lng = position.coords.longitude;
+				var wikipos = lat + '%7C' + lng;
+				console.log(wikipos);
+				$('#sidebar').attr('data-id' , wikipos );
+				$(function wiki(){	//------------------------------------------------------------------wiki api function-------------------------------------------------------------------------------------------------------
+					var wikipos = $("#sidebar").attr('data-id');
+					
+					$(document).ajaxStart(function(){	//whenever an ajax method starts on anything in the document
+					//	$("#loading").text("The cats are currently materializing...");	//change the text in the element with id "loading"
+					});
+					
+					$(document).ajaxComplete(function(){	//whenever an ajax method completes on anything in the document
+					//	$("#loading").text("The cats have arrived!");	//change the text in the element with id "loading"
+					});					
+ 
+					$.ajax({
+						type: "GET",
+						//url: /w/api.php?action=query&format=json&list=random&rnlimit=1
+						url: "http://en.wikipedia.org/w/api.php?action=query&format=json&list=geosearch&gscoord=" + wikipos + "&gsradius=10000&gslimit=10&callback=?",
+						contentType: "application/json; charset=utf-8",
+						async: false,
+						dataType: "json",
+						success: function (data, textStatus, jqXHR) {
+							console.log(data);
+							if( !$.isArray(data.query.geosearch) ||  !data.query.geosearch.length) {
+								$("#sidebar").append("<div class='articles'><h3> No nearby articles found. </h3></div>");
+							}
+							$.each(data.query.geosearch, function(i,item){
+								var baseUrl = "https://en.wikipedia.org/wiki/";
+								$("#sidebar").append("<div class='articles'><h3>" + item.title + "</h3>" + Math.round10(item.dist/(1000),-2) + "km <br><a href = " + baseUrl + encodeURI(item.title) + " target='_blank'>Read Article</a></div>");
+								
+							});
+						},
+						error: function (errorMessage) {
+						}
+					});
+					//end of callback function and end of .getJSON statement
+				});//end of wiki function
+				  var marker = new google.maps.Marker({
+					position: pos,
+					map: map,
+					draggable: true,
+					animation: google.maps.Animation.DROP,
+				  });
+				//infoWindow.setContent('Location found.');
+				map.setCenter(pos);
+			  }, function() {
+				handleLocationError(true, infoWindow, map.getCenter());
+			  });
+			} else {
+			  // Browser doesn't support Geolocation
+			  handleLocationError(false, infoWindow, map.getCenter());
+			}
+		  }
+
+		  function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+			infoWindow.setPosition(pos);
+			infoWindow.setContent(browserHasGeolocation ?
+								  'Error: The Geolocation service failed.' :
+								  'Error: Your browser doesn\'t support geolocation.');
+		  } 
+		  $(function dialogBox() {
+			$( "#dialog" ).dialog({
+			  autoOpen: false,
+			maxWidth:600,
+			maxHeight: 500,
+			width: 600,
+			  show: {
+				effect: "fadeIn",
+				duration: 900
+			  },
+			  hide: {
+				effect: "fadeOut",
+				duration: 900
+			  }
+			});
+		 
+			$( ".fa-question-circle" ).on( "click", function() {
+			  $( "#dialog" ).dialog( "open" );
+			});
+		  } );
+		</script>
+		<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEINMZu5Rhefl9hG7w66Xweel613xmiSA&callback=initMap"
+  type="text/javascript"></script> 
+		<script>
+		/*	$(function randomize(){
+				$(document).ajaxStart(function(){	//whenever an ajax method starts on anything in the document
+					//	$("#loading").text("The cats are currently materializing...");	//change the text in the element with id "loading"
+					});
+					
+					$(document).ajaxComplete(function(){	//whenever an ajax method completes on anything in the document
+					//	$("#loading").text("The cats have arrived!");	//change the text in the element with id "loading"
+					});					
+ 
+					$.ajax({
+						type: "GET",
+						//url: /w/api.php?action=query&format=json&list=random&rnlimit=1
+						url: "http://en.wikipedia.org/w/api.php?action=query&format=json&list=random&rnlimit=1&prop=coordinates&callback=?",
+						contentType: "application/json; charset=utf-8",
+						async: false,
+						dataType: "json",
+						success: function (data, textStatus, jqXHR) {
+							console.log(data);
+							$.each(data.query.random, function(i,item){
+								var ids = item.id;
+								console.log(ids);
+								$('#hidden').attr('data-id' , ids );
+							});
+						},
+						error: function (errorMessage) {
+						}
+					});
+			}); */
+		/*	$(function getCoordinates(){ //get coordinates of random article title
+					$(document).ajaxStart(function(){	//whenever an ajax method starts on anything in the document
+					//	$("#loading").text("The cats are currently materializing...");	//change the text in the element with id "loading"
+					});
+					
+					$(document).ajaxComplete(function(){	//whenever an ajax method completes on anything in the document
+					//	$("#loading").text("The cats have arrived!");	//change the text in the element with id "loading"
+					});		
+					var ids = $("#hidden").attr('data-id');
+					console.log(ids);
+					$.ajax({
+						type: "GET",
+						//url: /w/api.php?action=query&format=json&list=random&rnlimit=1
+						url: "http://en.wikipedia.org/w/api.php?action=query&prop=coordinates&titles=Wikimedia%20Foundation&callback=?",
+						contentType: "text/html; charset=utf-8",
+						async: false,
+						dataType: "html",
+						success: function (data, textStatus, jqXHR) {
+							console.log(data);
+						},
+						error: function (errorMessage) {
+						}
+					});
+			}); */
+		</script>
+	</body>
+</html>
